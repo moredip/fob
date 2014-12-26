@@ -1,0 +1,9 @@
+[submodule "3rdParty/ARDUINO-OAUTH-TOKEN"]
+	path = 3rdParty/ARDUINO-OAUTH-TOKEN
+	url = https://github.com/damico/ARDUINO-OATH-TOKEN.git
+[submodule "3rdParty/ArduinoLib_TOTP"]
+	path = 3rdParty/ArduinoLib_TOTP
+	url = https://github.com/lucadentella/ArduinoLib_TOTP.git
+[submodule "3rdParty/Cryptosuite"]
+	path = 3rdParty/Cryptosuite
+	url = https://github.com/maniacbug/Cryptosuite.git
