@@ -6,6 +6,9 @@
 
 #include "sha1.h"
 #include "TOTP.h"
+#include "key.h"
+
+#include "secret_keys.h"
 
 #if (SSD1306_LCDHEIGHT != 32)
 #error("Height incorrect, please fix Adafruit_SSD1306.h!");
@@ -14,10 +17,8 @@
 #define OLED_RESET_PIN 4
 #define PUSH_BUTTON_PIN 3
 
-// The shared secret is MyLegoDoor
-uint8_t hmacKey[] = {0x4d, 0x79, 0x4c, 0x65, 0x67, 0x6f, 0x44, 0x6f, 0x6f, 0x72};
-TOTP totp = TOTP(hmacKey, 10);
-
+// define MY_SECRET_KEYS in secret_keys.h
+Key keys[] = MY_SECRET_KEYS;
 
 Adafruit_SSD1306 display(OLED_RESET_PIN);
 
@@ -51,14 +52,12 @@ void loopWithoutDelay(){
     return;
   }
   
-  if( digitalRead(PUSH_BUTTON_PIN) ){
-    writeTimeToDisplay();
-  }else{
-    blankDisplay();
-  }
-  
-  String totpCode = totp.getCode(now());
-  Serial.println( "TOTP: "+totpCode )
+  //if( digitalRead(PUSH_BUTTON_PIN) ){
+      String totpCode = keys[0].getCurrentCode();
+      writeTimeAndCodeToDisplay(totpCode);
+//  }else{
+//    blankDisplay();
+//  }
 }
   
 void blankDisplay(){
@@ -108,14 +107,15 @@ void checkForTimeSync(){
   delay(500);
 }
 
-void writeTimeToDisplay(){
+void writeTimeAndCodeToDisplay(String &totpCode){
   display.setTextSize(2);
   display.setTextColor(WHITE);
   display.clearDisplay();
   
   display.setCursor(0,0);
   display.println(currentTimeString());
-  display.println(currentDateString());
+  display.println("> " + totpCode);
+  display.invertDisplay(true);
   display.display();
 }
 
