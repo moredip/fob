@@ -21,6 +21,7 @@
 // define MY_SECRET_KEYS in secret_keys.h
 Key keys[] = MY_SECRET_KEYS;
 int numberOfKeys = (sizeof(keys)/sizeof(*keys));
+int numberOfScreens = numberOfKeys + 1; // for clock display
 
 volatile int buttonPressCounter = 0;
 
@@ -31,15 +32,15 @@ void setup() {
   
   pinMode(PUSH_BUTTON_PIN, INPUT);
   
-  attachInterrupt(PUSH_BUTTON_INTERRUPT, onButtonPress, FALLING);
+  attachInterrupt(PUSH_BUTTON_INTERRUPT, onButtonPress, RISING);
 
   // by default, we'll generate the high voltage from the 3.3v line internally! (neat!)
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3C (for the 128x32)
-
+  display.setTextColor(WHITE);
+  display.setTextWrap(false);
   display.clearDisplay();
   
   display.setTextSize(3);
-  display.setTextColor(WHITE);
   display.setCursor(0,0);
   display.println("OpenFob");
   display.display();
@@ -53,7 +54,9 @@ void loop() {
 
 void onButtonPress(){
   static unsigned long last_interrupt_time = 0;
-  if( millis() - last_interrupt_time > 100 ){ // debouncing
+  const unsigned long interrupt_time = millis();
+  
+  if( interrupt_time - last_interrupt_time > 50 ){ // debouncing
     buttonPressCounter += 1;
   }
   last_interrupt_time = interrupt_time;
@@ -68,18 +71,10 @@ void loopWithoutDelay(){
   }
   
   //if( digitalRead(PUSH_BUTTON_PIN) ){
-      displayCurrentKey();
+      displayCurrentScreen();
 //  }else{
 //    blankDisplay();
 //  }
-}
-
-Key &currentKey(){
-  Serial.println(String("buttonPressCounter: ") + buttonPressCounter);
-  Serial.println(String("numberOfKeys: ") + numberOfKeys );
-  int ix = buttonPressCounter % numberOfKeys;
-  Serial.println(String("ix: ") + ix );
-  return keys[ix];
 }
 
 void blankDisplay(){
@@ -89,7 +84,6 @@ void blankDisplay(){
 
 void displayTimeSyncNeeded(){
   display.setTextSize(2);
-  display.setTextColor(WHITE);
   
   display.clearDisplay();
   display.setCursor(0,0);
@@ -117,10 +111,7 @@ void checkForTimeSync(){
   
   Serial.println("time synced:");
   writeTimeToSerial();
-  
-    display.setTextSize(2);
-  display.setTextColor(WHITE);
-  
+    
   display.setTextSize(3);
   display.clearDisplay();
   display.setCursor(0,0);
@@ -129,21 +120,38 @@ void checkForTimeSync(){
   delay(500);
 }
 
-void displayCurrentKey(){
-  Key &key = currentKey();
-  
+void displayCurrentScreen(){
+  int screenIx = buttonPressCounter % numberOfScreens;
+  if( screenIx == 0 ){
+    displayClockScreen();
+  }else{
+    Key &keyToDisplay = keys[screenIx-1];
+    displayKeyScreen(keyToDisplay);
+  }
+}
+
+void displayClockScreen(){
   display.setTextSize(2);
-  display.setTextColor(WHITE);
-  display.setTextWrap(false);
-  
+  display.invertDisplay(true);
+
   display.clearDisplay();
   
   display.setCursor(0,0);
-  //display.println(currentTimeString());
+  display.println(currentTimeString());
+  display.println(currentDateString());
+  display.display();
+}
+
+void displayKeyScreen(Key &key){
+  display.setTextSize(2);
+  display.invertDisplay(false);
+
+  display.clearDisplay();
+  
+  display.setCursor(0,0);
   display.print(key.getName());
   display.setCursor(0,16);
   display.print("   " + key.getCurrentCode());
-  //display.invertDisplay(true);
   display.display();
 }
 
