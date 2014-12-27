@@ -16,15 +16,22 @@
 
 #define OLED_RESET_PIN 4
 #define PUSH_BUTTON_PIN 3
+#define PUSH_BUTTON_INTERRUPT 1
 
 // define MY_SECRET_KEYS in secret_keys.h
 Key keys[] = MY_SECRET_KEYS;
+int numberOfKeys = (sizeof(keys)/sizeof(*keys));
+
+volatile int buttonPressCounter = 0;
 
 Adafruit_SSD1306 display(OLED_RESET_PIN);
 
 void setup() {                
   Serial.begin(9600);
+  
   pinMode(PUSH_BUTTON_PIN, INPUT);
+  
+  attachInterrupt(PUSH_BUTTON_INTERRUPT, onButtonPress, FALLING);
 
   // by default, we'll generate the high voltage from the 3.3v line internally! (neat!)
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3C (for the 128x32)
@@ -44,6 +51,14 @@ void loop() {
   delay(100);
 }
 
+void onButtonPress(){
+  static unsigned long last_interrupt_time = 0;
+  if( millis() - last_interrupt_time > 100 ){ // debouncing
+    buttonPressCounter += 1;
+  }
+  last_interrupt_time = interrupt_time;
+}
+
 void loopWithoutDelay(){
   checkForTimeSync();
   
@@ -53,13 +68,20 @@ void loopWithoutDelay(){
   }
   
   //if( digitalRead(PUSH_BUTTON_PIN) ){
-      String totpCode = keys[0].getCurrentCode();
-      writeTimeAndCodeToDisplay(totpCode);
+      displayCurrentKey();
 //  }else{
 //    blankDisplay();
 //  }
 }
-  
+
+Key &currentKey(){
+  Serial.println(String("buttonPressCounter: ") + buttonPressCounter);
+  Serial.println(String("numberOfKeys: ") + numberOfKeys );
+  int ix = buttonPressCounter % numberOfKeys;
+  Serial.println(String("ix: ") + ix );
+  return keys[ix];
+}
+
 void blankDisplay(){
   display.clearDisplay();
   display.display();
@@ -107,15 +129,21 @@ void checkForTimeSync(){
   delay(500);
 }
 
-void writeTimeAndCodeToDisplay(String &totpCode){
+void displayCurrentKey(){
+  Key &key = currentKey();
+  
   display.setTextSize(2);
   display.setTextColor(WHITE);
+  display.setTextWrap(false);
+  
   display.clearDisplay();
   
   display.setCursor(0,0);
-  display.println(currentTimeString());
-  display.println("> " + totpCode);
-  display.invertDisplay(true);
+  //display.println(currentTimeString());
+  display.print(key.getName());
+  display.setCursor(0,16);
+  display.print("   " + key.getCurrentCode());
+  //display.invertDisplay(true);
   display.display();
 }
 
